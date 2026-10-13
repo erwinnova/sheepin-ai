@@ -32,6 +32,7 @@ OUT_DIR = "data"
 
 TARGET_ADG = 0.12          # kg/day, the growth target used by the detection rules
 GATE_PASSES_PER_DAY = 4    # average passes through the auto gate per animal
+SCALE_NOISE_KG = 0.2       # measurement noise of the Smart Scale (does not accumulate)
 
 BREEDS = ["Garut", "Ekor Tipis", "Ekor Gemuk", "Garut", "Ekor Tipis"]
 FARMS = ["F001", "F001", "F001", "F002"]
@@ -106,7 +107,7 @@ def simulate_animal(a: dict, start_day: date):
     """Daily weight and gate passes for one animal over N_DAYS."""
     pattern = a["pattern"]
     # Each animal has its own normal ADG around the target.
-    base_adg = random.uniform(0.10, 0.15)
+    base_adg = random.uniform(0.12, 0.16)
     if pattern == "healthy_above_target":
         base_adg = 0.14
 
@@ -133,14 +134,17 @@ def simulate_animal(a: dict, start_day: date):
         elif pattern == "slow_growth" and days_left <= 13:
             adg = 0.04                       # a third of the target for 14 days
 
+        # True body weight moves smoothly; only the scale reading is noisy,
+        # and that noise does not accumulate from day to day.
         if d > 0:
-            kg = kg + adg + random.gauss(0, 0.12)
+            kg = kg + adg + random.gauss(0, 0.01)
         kg = max(kg, 15.0)
+        reading = kg + random.gauss(0, SCALE_NOISE_KG)
 
         # Smart Scale reading, once a day in the morning.
         ts = datetime.combine(day, datetime.min.time()) + timedelta(
             hours=6, minutes=random.randint(0, 90))
-        weights.append([a["ear_tag"], ts.strftime("%Y-%m-%d %H:%M:%S"), round(kg, 1)])
+        weights.append([a["ear_tag"], ts.strftime("%Y-%m-%d %H:%M:%S"), round(reading, 1)])
 
         # Auto gate passes, spread over the day, alternating in/out.
         n_pass = poisson(gate_rate)

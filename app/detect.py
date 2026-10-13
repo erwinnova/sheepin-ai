@@ -8,7 +8,8 @@ problem; it only explains the alert this module produces.
 Rules (all relative to the latest weighing date in the dataset, "today"):
   R1  weight change over 7 days   <= -5%  -> alert (segera)
                                    -3..-5% -> alert (waspada)
-  R2  14-day average daily gain   < 60% of TARGET_ADG -> alert (waspada)
+  R2  14-day growth slope (least-squares over all daily readings)
+                                   < 60% of TARGET_ADG -> alert (waspada)
   R3  no gate passes today and yesterday (2 calendar days) -> alert (segera)
 
 Run locally (after `gcloud auth application-default login`):
@@ -61,10 +62,45 @@ ORDER BY a.ear_tag
 """
 
 
+HISTORY_DAYS = 30
+
+HISTORY_SQL = """
+WITH today AS (
+  SELECT MAX(DATE(ts)) AS d FROM `{p}.{d}.weights`
+)
+SELECT w.ear_tag, DATE(w.ts) AS day, w.kg
+FROM `{p}.{d}.weights` w, today t
+WHERE DATE(w.ts) > DATE_SUB(t.d, INTERVAL {days} DAY)
+ORDER BY w.ear_tag, day
+"""
+
+
 def fetch_features(client: bigquery.Client | None = None) -> list[dict]:
+    """One feature row per animal, with its recent daily weight history attached."""
     client = client or bigquery.Client(project=PROJECT)
     sql = FEATURES_SQL.format(p=PROJECT, d=DATASET, gate_days_minus_1=GATE_DAYS - 1)
-    return [dict(row) for row in client.query(sql).result()]
+    rows = [dict(row) for row in client.query(sql).result()]
+
+    hist_sql = HISTORY_SQL.format(p=PROJECT, d=DATASET, days=HISTORY_DAYS)
+    history: dict[str, list] = {}
+    for h in client.query(hist_sql).result():
+        history.setdefault(h["ear_tag"], []).append(
+            {"tanggal": h["day"].isoformat(), "kg": h["kg"]})
+    for r in rows:
+        r["history"] = history.get(r["ear_tag"], [])
+    return rows
+
+
+def slope_per_day(points: list[dict]) -> float | None:
+    """Least-squares growth rate (kg/day) over daily readings; None if too few."""
+    if len(points) < 5:
+        return None
+    xs = list(range(len(points)))
+    ys = [p["kg"] for p in points]
+    mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
+    sxx = sum((x - mx) ** 2 for x in xs)
+    sxy = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    return round(sxy / sxx, 3) if sxx else None
 
 
 def evaluate(f: dict) -> dict:
@@ -85,10 +121,11 @@ def evaluate(f: dict) -> dict:
             reasons.append("bobot turun 3-5% dalam 7 hari")
             level = max_level(level, "waspada")
 
-    # R2 - slow growth over 14 days
-    adg_14d = None
-    if kg_now is not None and kg_14d is not None:
-        adg_14d = round((kg_now - kg_14d) / 14, 3)
+    # R2 - slow growth over 14 days (regression slope over the last 15 readings,
+    # which is far less sensitive to a single noisy scale reading than two points)
+    history = f.get("history") or []
+    adg_14d = slope_per_day(history[-15:])
+    if adg_14d is not None:
         if adg_14d < SLOW_GROWTH_FRACTION * TARGET_ADG and change_pct is not None \
                 and change_pct > DROP_WASPADA_PCT:
             # only report slow growth when R1 has not already fired on a drop
@@ -120,6 +157,7 @@ def evaluate(f: dict) -> dict:
         "rata_rata_lewat_gerbang_per_hari": round(float(f.get("avg_passes_per_day") or 0), 1),
         "alasan_alert": reasons,
         "tingkat_sistem": level,
+        "riwayat_bobot": history,
     }
 
 

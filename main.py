@@ -55,7 +55,8 @@ def list_animals():
     rs = records()
     summary = {lvl: sum(1 for r in rs if r["tingkat_sistem"] == lvl)
                for lvl in ("segera", "waspada", "normal")}
-    return {"ringkasan": summary, "ternak": rs}
+    slim = [{k: v for k, v in r.items() if k != "riwayat_bobot"} for r in rs]
+    return {"ringkasan": summary, "ternak": slim}
 
 
 @app.get("/api/animals/{ear_tag}")
