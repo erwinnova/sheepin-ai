@@ -2,6 +2,7 @@
 Sheepin AI - API and web app.
 
 Endpoints:
+  GET /                              -> farmer-facing web app (static/index.html)
   GET /api/health                    -> service status
   GET /api/animals                   -> all animals with rule results, flagged first
   GET /api/animals/{ear_tag}         -> one animal's rule result
@@ -13,7 +14,10 @@ Local run:  uvicorn main:app --reload --port 8080
 import os
 import time
 
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 
 from app.advisor import MODEL, advise
 from app.detect import run, to_gemini_payload
@@ -40,9 +44,12 @@ def find(ear_tag: str) -> dict:
     raise HTTPException(status_code=404, detail=f"ear_tag {ear_tag} tidak ditemukan")
 
 
-@app.get("/")
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+@app.get("/", include_in_schema=False)
 def root():
-    return {"message": "Sheepin AI is running", "docs": "/docs"}
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 @app.get("/api/health")
@@ -55,6 +62,7 @@ def list_animals():
     rs = records()
     summary = {lvl: sum(1 for r in rs if r["tingkat_sistem"] == lvl)
                for lvl in ("segera", "waspada", "normal")}
+    # the list stays light; /api/animals/{ear_tag} carries the 30-day history
     slim = [{k: v for k, v in r.items() if k != "riwayat_bobot"} for r in rs]
     return {"ringkasan": summary, "ternak": slim}
 

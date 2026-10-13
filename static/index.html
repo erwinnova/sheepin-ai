@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Sheepin AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;600;700&family=Newsreader:wght@500&display=swap"
+    />
+    <style>
+      :root {
+        --brand: #114636;
+        --brand-deep: #0b2f24;
+        --wool: #ffffff;
+        --surface: #f6f8f7;
+        --raised: #ffffff;
+        --sunken: #eef1ef;
+        --tint: #e3ede7;
+        --ink: #13201b;
+        --muted: #4f5d56;
+        --line: #dfe5e1;
+        --line-strong: #7b8a83;
+        --ok: #114636;
+        --ok-bg: #cfe6da;
+        --warn: #8d4b00;
+        --warn-bg: #ffdcc3;
+        --warn-ink: #6e3900;
+        --danger: #b42318;
+        --danger-bg: #fbe5e2;
+        --danger-ink: #93000a;
+        --water: #006398;
+        --sans: "Spline Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+        --serif: "Newsreader", Georgia, serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--surface);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      a {
+        color: var(--brand);
+      }
+      button {
+        font: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 2px;
+      }
+
+      .bar {
+        background: var(--brand);
+        color: var(--wool);
+        padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
+      }
+      .bar .in {
+        max-width: 720px;
+        margin: 0 auto;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .bar .name {
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: -0.01em;
+      }
+      .bar .name span {
+        font-weight: 400;
+        color: #9fd3bb;
+      }
+      .bar .date {
+        font-size: 13px;
+        color: #cfe6da;
+      }
+
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 16px 16px calc(40px + env(safe-area-inset-bottom, 0px));
+      }
+      h1 {
+        font-size: 24px;
+        line-height: 32px;
+        font-weight: 600;
+        margin: 8px 0 16px;
+        letter-spacing: -0.01em;
+      }
+      h2 {
+        font-size: 18px;
+        line-height: 26px;
+        font-weight: 600;
+        margin: 24px 0 8px;
+      }
+      p {
+        margin: 0 0 8px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .small {
+        font-size: 13px;
+        line-height: 20px;
+      }
+
+      /* count chips double as filters */
+      .counts {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      .chip {
+        border: 1px solid var(--line-strong);
+        background: var(--raised);
+        border-radius: 9999px;
+        padding: 6px 12px;
+        cursor: pointer;
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+        color: var(--ink);
+        min-height: 44px;
+      }
+      .chip b {
+        font-family: var(--serif);
+        font-size: 20px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+      .chip.on {
+        border-color: var(--brand);
+        background: var(--tint);
+      }
+      .chip .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+
+      .list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--raised);
+        overflow: hidden;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 76px 1fr auto;
+        gap: 12px;
+        align-items: center;
+        padding: 12px 16px;
+        border-top: 1px solid var(--line);
+        text-decoration: none;
+        color: inherit;
+        min-height: 64px;
+      }
+      .row:first-child {
+        border-top: none;
+      }
+      .row:hover {
+        background: var(--sunken);
+      }
+      .tag {
+        font-family: var(--serif);
+        font-size: 24px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
+      }
+      .row .meta {
+        font-size: 13px;
+        line-height: 20px;
+        color: var(--muted);
+      }
+      .row .meta b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .kg {
+        font-family: var(--serif);
+        font-size: 20px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+      .kg small {
+        font-family: var(--sans);
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 9999px;
+        padding: 2px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 20px;
+      }
+      .badge::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .badge.normal {
+        background: var(--ok-bg);
+        color: var(--brand-deep);
+      }
+      .badge.waspada {
+        background: var(--warn-bg);
+        color: var(--warn-ink);
+      }
+      .badge.segera {
+        background: var(--danger-bg);
+        color: var(--danger-ink);
+      }
+
+      .card {
+        background: var(--raised);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      .card.brand {
+        background: var(--brand);
+        color: var(--wool);
+        border-color: var(--brand);
+      }
+      .card.brand .muted {
+        color: #cfe6da;
+      }
+      .card.brand h2 {
+        color: var(--wool);
+        margin-top: 0;
+      }
+
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 44px;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .head .tag {
+        font-size: 44px;
+        line-height: 48px;
+      }
+      .readings {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin: 16px 0 4px;
+      }
+      .reading .v {
+        font-family: var(--serif);
+        font-size: 28px;
+        line-height: 32px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+      .reading .l {
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 500;
+      }
+      .reading .v.down {
+        color: var(--danger);
+      }
+      .reading .v.warn {
+        color: var(--warn);
+      }
+      .reasons {
+        list-style: none;
+        padding: 0;
+        margin: 8px 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .reasons li {
+        padding-left: 14px;
+        position: relative;
+      }
+      .reasons li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 10px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--warn);
+      }
+      .reasons li.segera::before {
+        background: var(--danger);
+      }
+
+      svg.chart {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 10px 16px;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        background: var(--brand);
+        color: var(--wool);
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn:hover {
+        background: var(--brand-deep);
+      }
+      .btn:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      .card.brand .btn {
+        background: var(--wool);
+        color: var(--brand-deep);
+      }
+      .advice ul {
+        margin: 4px 0 12px;
+        padding-left: 20px;
+      }
+      .advice li {
+        margin-bottom: 4px;
+      }
+      .advice h3 {
+        font-size: 15px;
+        margin: 12px 0 2px;
+        font-weight: 600;
+        color: #9fd3bb;
+      }
+      .advice .sum {
+        font-size: 17px;
+        line-height: 26px;
+      }
+      .advice .vet {
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        padding-top: 12px;
+        margin-top: 12px;
+      }
+      .err {
+        background: var(--danger-bg);
+        color: var(--danger-ink);
+        border-radius: 12px;
+        padding: 12px 16px;
+      }
+      .empty {
+        padding: 32px 16px;
+        text-align: center;
+        color: var(--muted);
+      }
+
+      @media (max-width: 420px) {
+        .row {
+          grid-template-columns: 64px 1fr auto;
+        }
+        .readings {
+          gap: 8px;
+        }
+        .reading .v {
+          font-size: 24px;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .pulse {
+          animation: pulse 1.2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+          50% {
+            opacity: 0.4;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <div class="in">
+        <div class="name">Sheepin <span>AI</span></div>
+        <div class="date" id="date"></div>
+      </div>
+    </header>
+    <main id="app"><p class="muted">Memuat data kandang…</p></main>
+
+    <script>
+      const app = document.getElementById("app");
+      const state = { animals: null, summary: null, filter: null, advice: {} };
+      const LEVEL = { segera: "Segera", waspada: "Waspada", normal: "Normal" };
+
+      const fmt = {
+        kg: (n) => (n == null ? "–" : n.toFixed(1).replace(".", ",")),
+        pct: (n) =>
+          n == null
+            ? "–"
+            : (n > 0 ? "+" : "") + n.toFixed(1).replace(".", ",") + "%",
+        date: (s) => {
+          const d = new Date(s + "T00:00:00");
+          return d.toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          });
+        },
+        short: (s) => {
+          const d = new Date(s + "T00:00:00");
+          return d.toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "short",
+          });
+        },
+      };
+      const esc = (s) =>
+        String(s ?? "").replace(
+          /[&<>"]/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+        );
+
+      async function loadList() {
+        const r = await fetch("/api/animals");
+        if (!r.ok) throw new Error("API " + r.status);
+        const data = await r.json();
+        state.animals = data.ternak;
+        state.summary = data.ringkasan;
+        if (data.ternak[0])
+          document.getElementById("date").textContent =
+            "Data " + fmt.date(data.ternak[0].tanggal_data);
+      }
+
+      function route() {
+        const m = location.hash.match(/^#\/ternak\/([A-Za-z0-9_-]+)$/);
+        if (m) renderDetail(m[1]);
+        else renderList();
+        window.scrollTo(0, 0);
+      }
+
+      function renderList() {
+        const s = state.summary,
+          rows = state.animals.filter(
+            (a) => !state.filter || a.tingkat_sistem === state.filter,
+          );
+        const flagged = s.segera + s.waspada;
+        app.innerHTML = `
+    <h1>${flagged ? `${flagged} ekor perlu dilihat hari ini` : "Semua ternak dalam kondisi baik"}</h1>
+    <div class="counts">
+      ${["segera", "waspada", "normal"]
+        .map(
+          (l) => `
+        <button class="chip ${state.filter === l ? "on" : ""}" data-l="${l}" aria-pressed="${state.filter === l}">
+          <span class="dot" style="background:var(--${l === "segera" ? "danger" : l === "waspada" ? "warn" : "ok"})"></span>
+          <b>${s[l]}</b> ${LEVEL[l]}
+        </button>`,
+        )
+        .join("")}
+    </div>
+    <div class="list">
+      ${
+        rows.length
+          ? rows
+              .map(
+                (a) => `
+        <a class="row" href="#/ternak/${a.ear_tag}">
+          <div class="tag">${a.ear_tag}</div>
+          <div>
+            <span class="badge ${a.tingkat_sistem}">${LEVEL[a.tingkat_sistem]}</span>
+            <div class="meta">${a.alasan_alert.length ? esc(a.alasan_alert[0]) : `${a.jenis_kelamin}, ${a.umur_bulan} bulan, ${esc(a.ras)}`}</div>
+          </div>
+          <div class="kg">${fmt.kg(a.bobot_hari_ini_kg)} <small>KG</small><div class="meta" style="color:${a.perubahan_persen < -3 ? "var(--danger)" : "inherit"}">${fmt.pct(a.perubahan_persen)} / 7 hari</div></div>
+        </a>`,
+              )
+              .join("")
+          : `<div class="empty">Tidak ada ternak dengan status ini.</div>`
+      }
+    </div>
+    <p class="small muted" style="margin-top:12px">Status ditentukan oleh aturan dari data timbangan dan gerbang otomatis. Ketuk seekor ternak untuk melihat riwayat dan saran.</p>`;
+        app.querySelectorAll(".chip").forEach(
+          (c) =>
+            (c.onclick = () => {
+              state.filter = state.filter === c.dataset.l ? null : c.dataset.l;
+              renderList();
+            }),
+        );
+      }
+
+      function chart(h, target) {
+        if (!h || h.length < 2) return "";
+        const W = 640,
+          H = 220,
+          px = 44,
+          py = 18;
+        const ys = h.map((p) => p.kg),
+          lo = Math.min(...ys) - 0.8,
+          hi = Math.max(...ys) + 0.8;
+        const x = (i) => px + (i * (W - 2 * px)) / (h.length - 1);
+        const y = (v) => py + ((hi - v) * (H - 2 * py)) / (hi - lo);
+        const line = h
+          .map(
+            (p, i) =>
+              `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.kg).toFixed(1)}`,
+          )
+          .join(" ");
+        // expected path at target growth, anchored on the reading 14 days ago
+        const i0 = Math.max(0, h.length - 15),
+          k0 = h[i0].kg;
+        const exp = `M${x(i0).toFixed(1)},${y(k0).toFixed(1)} L${x(h.length - 1).toFixed(1)},${y(k0 + target * (h.length - 1 - i0)).toFixed(1)}`;
+        const ticks = [0, Math.floor(h.length / 2), h.length - 1];
+        const last = h[h.length - 1];
+        return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Grafik bobot ${h.length} hari terakhir">
+    ${[lo + 1, (lo + hi) / 2, hi - 1].map((v) => `<line x1="${px}" x2="${W - px}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${px - 6}" y="${y(v) + 4}" font-size="18" text-anchor="end" fill="var(--muted)">${v.toFixed(0)}</text>`).join("")}
+    <path d="${exp}" stroke="var(--water)" stroke-width="2" stroke-dasharray="6 5" fill="none"/>
+    <path d="${line}" stroke="var(--brand)" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+    ${h.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.kg)}" r="2.5" fill="var(--brand)"/>`).join("")}
+    <circle cx="${x(h.length - 1)}" cy="${y(last.kg)}" r="5" fill="var(--brand)" stroke="var(--raised)" stroke-width="2"/>
+    ${ticks.map((i) => `<text x="${x(i)}" y="${H - 2}" font-size="18" text-anchor="${i === 0 ? "start" : i === h.length - 1 ? "end" : "middle"}" fill="var(--muted)">${fmt.short(h[i].tanggal)}</text>`).join("")}
+  </svg>
+  <p class="small muted" style="margin-top:4px">Garis hijau: bobot tertimbang. Garis biru putus: laju target ${target.toFixed(2).replace(".", ",")} kg/hari dari 14 hari lalu.</p>`;
+      }
+
+      async function renderDetail(tag) {
+        let a = state.animals.find((x) => x.ear_tag === tag);
+        if (!a) {
+          app.innerHTML = `<a class="back" href="#/">‹ Kembali</a><div class="err">Ternak ${esc(tag)} tidak ditemukan.</div>`;
+          return;
+        }
+        if (!a.riwayat_bobot) {
+          // the list endpoint is slim; fetch history once
+          app.innerHTML = `<a class="back" href="#/">‹ Semua ternak</a><p class="muted">Memuat riwayat ${tag}…</p>`;
+          try {
+            Object.assign(a, await (await fetch(`/api/animals/${tag}`)).json());
+          } catch (e) {
+            a.riwayat_bobot = [];
+          }
+        }
+        const lvl = a.tingkat_sistem,
+          adv = state.advice[tag];
+        app.innerHTML = `
+    <a class="back" href="#/">‹ Semua ternak</a>
+    <div class="card">
+      <div class="head">
+        <div class="tag">${a.ear_tag}</div>
+        <span class="badge ${lvl}">${LEVEL[lvl]}</span>
+      </div>
+      <p class="muted">${a.jenis_kelamin}, ${a.umur_bulan} bulan, ${esc(a.ras)}, kandang ${esc(a.farm_id)}</p>
+      <div class="readings">
+        <div class="reading"><div class="v ${a.perubahan_persen <= -5 ? "down" : a.perubahan_persen <= -3 ? "warn" : ""}">${fmt.kg(a.bobot_hari_ini_kg)}</div><div class="l">kg hari ini</div></div>
+        <div class="reading"><div class="v ${a.perubahan_persen <= -5 ? "down" : a.perubahan_persen <= -3 ? "warn" : ""}">${fmt.pct(a.perubahan_persen)}</div><div class="l">7 hari</div></div>
+        <div class="reading"><div class="v ${a.lewat_gerbang_48_jam_terakhir === 0 ? "down" : ""}">${a.lewat_gerbang_48_jam_terakhir}</div><div class="l">lewat gerbang, 2 hari</div></div>
+      </div>
+      ${a.alasan_alert.length ? `<ul class="reasons">${a.alasan_alert.map((r) => `<li class="${lvl}">${esc(r)}</li>`).join("")}</ul>` : `<p class="muted">Tidak ada sinyal yang perlu diwaspadai. Pertumbuhan ${(a.pertumbuhan_14_hari_kg_per_hari ?? 0).toFixed(2).replace(".", ",")} kg/hari.</p>`}
+    </div>
+
+    <h2>Bobot 30 hari terakhir</h2>
+    <div class="card">${chart(a.riwayat_bobot, a.target_pertumbuhan_per_hari_kg)}</div>
+
+    <h2>Saran</h2>
+    <div class="card brand advice" id="advice">
+      ${
+        adv
+          ? adviceHTML(adv)
+          : `
+        <p class="muted">Gemini membaca riwayat ternak ini dan menjelaskan apa yang sebaiknya dicek dan dilakukan hari ini. Tidak mendiagnosis dan tidak menyebut obat.</p>
+        <button class="btn" id="ask">Minta saran</button>`
+      }
+    </div>`;
+        const btn = document.getElementById("ask");
+        if (btn) btn.onclick = () => getAdvice(tag);
+      }
+
+      function adviceHTML(s) {
+        const li = (xs) => (xs || []).map((x) => `<li>${esc(x)}</li>`).join("");
+        return `
+    <p class="sum">${esc(s.ringkasan)}</p>
+    ${s.cek_hari_ini?.length ? `<h3>Cek hari ini</h3><ul>${li(s.cek_hari_ini)}</ul>` : ""}
+    ${s.lakukan?.length ? `<h3>Lakukan</h3><ul>${li(s.lakukan)}</ul>` : ""}
+    ${s.hubungi_dokter_hewan_jika && s.hubungi_dokter_hewan_jika !== "-" ? `<p class="vet"><b>Hubungi dokter hewan jika:</b> ${esc(s.hubungi_dokter_hewan_jika)}</p>` : ""}
+    <p class="small muted" style="margin:12px 0 0">Saran dibuat oleh ${esc(s._meta?.model || "Gemini")} dalam ${((s._meta?.latency_ms || 0) / 1000).toFixed(1).replace(".", ",")} detik. Keputusan tetap di tangan Anda dan dokter hewan.</p>`;
+      }
+
+      async function getAdvice(tag) {
+        const box = document.getElementById("advice");
+        box.innerHTML = `<p class="pulse">Gemini sedang membaca data ternak ${tag}…</p>`;
+        try {
+          const r = await fetch(`/api/animals/${tag}/advice`);
+          if (!r.ok) {
+            const e = await r.json().catch(() => ({}));
+            throw new Error(e.detail || "API " + r.status);
+          }
+          const data = await r.json();
+          state.advice[tag] = data.saran;
+          box.innerHTML = adviceHTML(data.saran);
+        } catch (err) {
+          box.innerHTML = `<div class="err">Saran belum bisa dibuat: ${esc(err.message)}</div><p style="margin-top:12px"><button class="btn" id="ask">Coba lagi</button></p>`;
+          document.getElementById("ask").onclick = () => getAdvice(tag);
+        }
+      }
+
+      loadList()
+        .then(route)
+        .catch((e) => {
+          app.innerHTML = `<div class="err">Data kandang belum bisa dimuat: ${esc(e.message)}. Muat ulang halaman untuk mencoba lagi.</div>`;
+        });
+      addEventListener("hashchange", route);
+    </script>
+  </body>
+</html>
