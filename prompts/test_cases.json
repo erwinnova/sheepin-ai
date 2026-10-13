@@ -1,0 +1,59 @@
+{
+  "case_0931": {
+    "ear_tag": "0931",
+    "jenis_kelamin": "betina",
+    "umur_bulan": 14,
+    "bobot_6_hari_lalu_kg": 38.6,
+    "bobot_hari_ini_kg": 36.1,
+    "perubahan_persen": -6.5,
+    "target_pertumbuhan_per_hari_kg": 0.12,
+    "lewat_gerbang_48_jam_terakhir": 0,
+    "rata_rata_lewat_gerbang_per_hari": 4,
+    "pengobatan_cacing_terakhir_hari_lalu": 95,
+    "alasan_alert": [
+      "bobot turun lebih dari 5% dalam 7 hari",
+      "tidak lewat gerbang 48 jam"
+    ]
+  },
+  "case_0417": {
+    "ear_tag": "0417",
+    "jenis_kelamin": "jantan",
+    "umur_bulan": 9,
+    "bobot_6_hari_lalu_kg": 36.0,
+    "bobot_hari_ini_kg": 36.8,
+    "perubahan_persen": 2.2,
+    "target_pertumbuhan_per_hari_kg": 0.12,
+    "lewat_gerbang_48_jam_terakhir": 8,
+    "rata_rata_lewat_gerbang_per_hari": 4,
+    "pengobatan_cacing_terakhir_hari_lalu": 30,
+    "alasan_alert": []
+  },
+  "case_0582": {
+    "ear_tag": "0582",
+    "jenis_kelamin": "betina",
+    "umur_bulan": 18,
+    "bobot_6_hari_lalu_kg": 37.0,
+    "bobot_hari_ini_kg": 35.8,
+    "perubahan_persen": -3.2,
+    "target_pertumbuhan_per_hari_kg": 0.1,
+    "lewat_gerbang_48_jam_terakhir": 7,
+    "rata_rata_lewat_gerbang_per_hari": 4,
+    "pengobatan_cacing_terakhir_hari_lalu": 45,
+    "alasan_alert": ["bobot turun 3-5% dalam 7 hari"]
+  },
+  "case_0266": {
+    "ear_tag": "0266",
+    "jenis_kelamin": "betina",
+    "umur_bulan": 11,
+    "bobot_6_hari_lalu_kg": 38.0,
+    "bobot_hari_ini_kg": 33.4,
+    "perubahan_persen": -12.1,
+    "target_pertumbuhan_per_hari_kg": 0.12,
+    "lewat_gerbang_48_jam_terakhir": 0,
+    "rata_rata_lewat_gerbang_per_hari": 5,
+    "alasan_alert": [
+      "bobot turun lebih dari 5% dalam 7 hari",
+      "tidak lewat gerbang 48 jam"
+    ]
+  }
+}
