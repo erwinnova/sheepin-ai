@@ -69,7 +69,7 @@
         max-width: 720px;
         margin: 0 auto;
         display: flex;
-        align-items: baseline;
+        align-items: center;
         justify-content: space-between;
         gap: 12px;
       }
@@ -82,9 +82,34 @@
         font-weight: 400;
         color: #9fd3bb;
       }
+      .bar .right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
       .bar .date {
         font-size: 13px;
         color: #cfe6da;
+      }
+      .lang {
+        display: flex;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 9999px;
+        overflow: hidden;
+      }
+      .lang button {
+        background: transparent;
+        color: #cfe6da;
+        border: 0;
+        padding: 4px 10px;
+        min-height: 32px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .lang button[aria-pressed="true"] {
+        background: var(--wool);
+        color: var(--brand-deep);
       }
 
       main {
@@ -116,7 +141,6 @@
         line-height: 20px;
       }
 
-      /* count chips double as filters */
       .counts {
         display: flex;
         gap: 8px;
@@ -155,7 +179,6 @@
       .list {
         display: flex;
         flex-direction: column;
-        gap: 0;
         border: 1px solid var(--line);
         border-radius: 16px;
         background: var(--raised);
@@ -189,10 +212,6 @@
         font-size: 13px;
         line-height: 20px;
         color: var(--muted);
-      }
-      .row .meta b {
-        color: var(--ink);
-        font-weight: 600;
       }
       .kg {
         font-family: var(--serif);
@@ -253,10 +272,6 @@
       }
       .card.brand .muted {
         color: #cfe6da;
-      }
-      .card.brand h2 {
-        color: var(--wool);
-        margin-top: 0;
       }
 
       .back {
@@ -352,10 +367,6 @@
       .btn:hover {
         background: var(--brand-deep);
       }
-      .btn:disabled {
-        opacity: 0.4;
-        cursor: default;
-      }
       .card.brand .btn {
         background: var(--wool);
         color: var(--brand-deep);
@@ -404,6 +415,9 @@
         .reading .v {
           font-size: 24px;
         }
+        .bar .date {
+          display: none;
+        }
       }
       @media (prefers-reduced-motion: no-preference) {
         .pulse {
@@ -421,55 +435,209 @@
     <header class="bar">
       <div class="in">
         <div class="name">Sheepin <span>AI</span></div>
-        <div class="date" id="date"></div>
+        <div class="right">
+          <div class="date" id="date"></div>
+          <div class="lang" role="group" aria-label="Language">
+            <button data-lang="id" aria-pressed="false">ID</button>
+            <button data-lang="en" aria-pressed="false">EN</button>
+          </div>
+        </div>
       </div>
     </header>
-    <main id="app"><p class="muted">Memuat data kandang…</p></main>
+    <main id="app"></main>
 
     <script>
-      const app = document.getElementById("app");
-      const state = { animals: null, summary: null, filter: null, advice: {} };
-      const LEVEL = { segera: "Segera", waspada: "Waspada", normal: "Normal" };
+      // ---------- translations ----------
+      const T = {
+        id: {
+          locale: "id-ID",
+          loading: "Memuat data kandang…",
+          loadingHist: (t) => `Memuat riwayat ${t}…`,
+          dataOf: (d) => `Data ${d}`,
+          title: (n) =>
+            n
+              ? `${n} ekor perlu dilihat hari ini`
+              : "Semua ternak dalam kondisi baik",
+          level: { segera: "Segera", waspada: "Waspada", normal: "Normal" },
+          reason: {
+            drop_5: "bobot turun lebih dari 5% dalam 7 hari",
+            drop_3: "bobot turun 3–5% dalam 7 hari",
+            slow_growth: "pertumbuhan 14 hari di bawah 60% target",
+            no_gate: "tidak lewat gerbang 48 jam",
+          },
+          sex: { jantan: "jantan", betina: "betina" },
+          months: (n) => `${n} bulan`,
+          pen: (f) => `kandang ${f}`,
+          kg: "kg",
+          per7d: "/ 7 hari",
+          kgToday: "kg hari ini",
+          d7: "7 hari",
+          gate2d: "lewat gerbang, 2 hari",
+          noSignal: (g) =>
+            `Tidak ada sinyal yang perlu diwaspadai. Pertumbuhan ${g} kg/hari.`,
+          empty: "Tidak ada ternak dengan status ini.",
+          listNote:
+            "Status ditentukan oleh aturan dari data timbangan dan gerbang otomatis. Ketuk seekor ternak untuk melihat riwayat dan saran.",
+          back: "‹ Semua ternak",
+          notFound: (t) => `Ternak ${t} tidak ditemukan.`,
+          chartTitle: "Bobot 30 hari terakhir",
+          chartAria: (n) => `Grafik bobot ${n} hari terakhir`,
+          chartNote: (g) =>
+            `Garis hijau: bobot tertimbang. Garis biru putus: laju target ${g} kg/hari dari 14 hari lalu.`,
+          adviceTitle: "Saran",
+          adviceIntro:
+            "Gemini membaca riwayat ternak ini dan menjelaskan apa yang sebaiknya dicek dan dilakukan hari ini. Tidak mendiagnosis dan tidak menyebut obat.",
+          ask: "Minta saran",
+          asking: (t) => `Gemini sedang membaca data ternak ${t}…`,
+          check: "Cek hari ini",
+          do: "Lakukan",
+          vet: "Hubungi dokter hewan jika:",
+          by: (m, s) =>
+            `Saran dibuat oleh ${m} dalam ${s} detik. Keputusan tetap di tangan Anda dan dokter hewan.`,
+          adviceErr: (e) => `Saran belum bisa dibuat: ${e}`,
+          retry: "Coba lagi",
+          loadErr: (e) =>
+            `Data kandang belum bisa dimuat: ${e}. Muat ulang halaman untuk mencoba lagi.`,
+        },
+        en: {
+          locale: "en-GB",
+          loading: "Loading the flock…",
+          loadingHist: (t) => `Loading history for ${t}…`,
+          dataOf: (d) => `Data as of ${d}`,
+          title: (n) =>
+            n
+              ? `${n} animal${n > 1 ? "s" : ""} need a look today`
+              : "The whole flock is doing well",
+          level: { segera: "Urgent", waspada: "Watch", normal: "Normal" },
+          reason: {
+            drop_5: "weight down more than 5% in 7 days",
+            drop_3: "weight down 3–5% in 7 days",
+            slow_growth: "14-day growth below 60% of target",
+            no_gate: "no gate passes for 48 hours",
+          },
+          sex: { jantan: "male", betina: "female" },
+          months: (n) => `${n} months`,
+          pen: (f) => `pen ${f}`,
+          kg: "kg",
+          per7d: "/ 7 days",
+          kgToday: "kg today",
+          d7: "7 days",
+          gate2d: "gate passes, 2 days",
+          noSignal: (g) => `No signal to worry about. Growing at ${g} kg/day.`,
+          empty: "No animals with this status.",
+          listNote:
+            "Status is set by rules over Smart Scale and auto-gate data. Tap an animal for its history and advice.",
+          back: "‹ All animals",
+          notFound: (t) => `Animal ${t} not found.`,
+          chartTitle: "Weight, last 30 days",
+          chartAria: (n) => `Weight chart, last ${n} days`,
+          chartNote: (g) =>
+            `Green line: scale readings. Dashed blue: target rate of ${g} kg/day from 14 days ago.`,
+          adviceTitle: "Advice",
+          adviceIntro:
+            "Gemini reads this animal's history and explains what to check and do today. It does not diagnose and does not name medicines.",
+          ask: "Get advice",
+          asking: (t) => `Gemini is reading the data for ${t}…`,
+          check: "Check today",
+          do: "Do",
+          vet: "Call a vet if:",
+          by: (m, s) =>
+            `Advice generated by ${m} in ${s} seconds. The decision stays with you and your vet.`,
+          adviceErr: (e) => `Advice could not be generated: ${e}`,
+          retry: "Try again",
+          loadErr: (e) =>
+            `The flock data could not be loaded: ${e}. Reload the page to try again.`,
+        },
+      };
 
+      // ---------- language: saved choice, else browser language ----------
+      function initialLang() {
+        try {
+          const s = localStorage.getItem("sheepin.lang");
+          if (s === "id" || s === "en") return s;
+        } catch (e) {}
+        return (navigator.language || "id").toLowerCase().startsWith("id")
+          ? "id"
+          : "en";
+      }
+      const state = {
+        lang: initialLang(),
+        animals: null,
+        summary: null,
+        filter: null,
+        advice: {},
+      };
+      const t = () => T[state.lang];
+      function setLang(l) {
+        state.lang = l;
+        try {
+          localStorage.setItem("sheepin.lang", l);
+        } catch (e) {}
+        document.documentElement.lang = l;
+        document
+          .querySelectorAll(".lang button")
+          .forEach((b) => b.setAttribute("aria-pressed", b.dataset.lang === l));
+        if (state.animals) {
+          setDate();
+          route();
+        }
+      }
+      document
+        .querySelectorAll(".lang button")
+        .forEach((b) => (b.onclick = () => setLang(b.dataset.lang)));
+
+      // ---------- formatting ----------
+      const app = document.getElementById("app");
+      const num = (n, d = 1) =>
+        n == null
+          ? "–"
+          : n.toLocaleString(t().locale, {
+              minimumFractionDigits: d,
+              maximumFractionDigits: d,
+            });
       const fmt = {
-        kg: (n) => (n == null ? "–" : n.toFixed(1).replace(".", ",")),
-        pct: (n) =>
-          n == null
-            ? "–"
-            : (n > 0 ? "+" : "") + n.toFixed(1).replace(".", ",") + "%",
-        date: (s) => {
-          const d = new Date(s + "T00:00:00");
-          return d.toLocaleDateString("id-ID", {
+        kg: (n) => num(n, 1),
+        pct: (n) => (n == null ? "–" : (n > 0 ? "+" : "") + num(n, 1) + "%"),
+        date: (s) =>
+          new Date(s + "T00:00:00").toLocaleDateString(t().locale, {
             day: "numeric",
             month: "long",
             year: "numeric",
-          });
-        },
-        short: (s) => {
-          const d = new Date(s + "T00:00:00");
-          return d.toLocaleDateString("id-ID", {
+          }),
+        short: (s) =>
+          new Date(s + "T00:00:00").toLocaleDateString(t().locale, {
             day: "numeric",
             month: "short",
-          });
-        },
+          }),
       };
       const esc = (s) =>
         String(s ?? "").replace(
           /[&<>"]/g,
           (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
         );
+      const reasonText = (a, i) =>
+        (a.alasan_kode && a.alasan_kode[i] && t().reason[a.alasan_kode[i]]) ||
+        a.alasan_alert[i];
+      const who = (a) =>
+        `${t().sex[a.jenis_kelamin] || a.jenis_kelamin}, ${t().months(a.umur_bulan)}, ${esc(a.ras)}`;
 
+      // ---------- data ----------
       async function loadList() {
         const r = await fetch("/api/animals");
         if (!r.ok) throw new Error("API " + r.status);
         const data = await r.json();
         state.animals = data.ternak;
         state.summary = data.ringkasan;
-        if (data.ternak[0])
-          document.getElementById("date").textContent =
-            "Data " + fmt.date(data.ternak[0].tanggal_data);
+        setDate();
+      }
+      function setDate() {
+        const a = state.animals && state.animals[0];
+        document.getElementById("date").textContent = a
+          ? t().dataOf(fmt.date(a.tanggal_data))
+          : "";
       }
 
+      // ---------- routing ----------
       function route() {
         const m = location.hash.match(/^#\/ternak\/([A-Za-z0-9_-]+)$/);
         if (m) renderDetail(m[1]);
@@ -477,21 +645,22 @@
         window.scrollTo(0, 0);
       }
 
+      // ---------- list ----------
       function renderList() {
         const s = state.summary,
-          rows = state.animals.filter(
-            (a) => !state.filter || a.tingkat_sistem === state.filter,
-          );
-        const flagged = s.segera + s.waspada;
+          L = t();
+        const rows = state.animals.filter(
+          (a) => !state.filter || a.tingkat_sistem === state.filter,
+        );
         app.innerHTML = `
-    <h1>${flagged ? `${flagged} ekor perlu dilihat hari ini` : "Semua ternak dalam kondisi baik"}</h1>
+    <h1>${L.title(s.segera + s.waspada)}</h1>
     <div class="counts">
       ${["segera", "waspada", "normal"]
         .map(
           (l) => `
         <button class="chip ${state.filter === l ? "on" : ""}" data-l="${l}" aria-pressed="${state.filter === l}">
           <span class="dot" style="background:var(--${l === "segera" ? "danger" : l === "waspada" ? "warn" : "ok"})"></span>
-          <b>${s[l]}</b> ${LEVEL[l]}
+          <b>${s[l]}</b> ${L.level[l]}
         </button>`,
         )
         .join("")}
@@ -505,17 +674,18 @@
         <a class="row" href="#/ternak/${a.ear_tag}">
           <div class="tag">${a.ear_tag}</div>
           <div>
-            <span class="badge ${a.tingkat_sistem}">${LEVEL[a.tingkat_sistem]}</span>
-            <div class="meta">${a.alasan_alert.length ? esc(a.alasan_alert[0]) : `${a.jenis_kelamin}, ${a.umur_bulan} bulan, ${esc(a.ras)}`}</div>
+            <span class="badge ${a.tingkat_sistem}">${L.level[a.tingkat_sistem]}</span>
+            <div class="meta">${a.alasan_alert.length ? esc(reasonText(a, 0)) : who(a)}</div>
           </div>
-          <div class="kg">${fmt.kg(a.bobot_hari_ini_kg)} <small>KG</small><div class="meta" style="color:${a.perubahan_persen < -3 ? "var(--danger)" : "inherit"}">${fmt.pct(a.perubahan_persen)} / 7 hari</div></div>
+          <div class="kg">${fmt.kg(a.bobot_hari_ini_kg)} <small>${L.kg.toUpperCase()}</small>
+            <div class="meta" style="color:${a.perubahan_persen < -3 ? "var(--danger)" : "inherit"}">${fmt.pct(a.perubahan_persen)} ${L.per7d}</div></div>
         </a>`,
               )
               .join("")
-          : `<div class="empty">Tidak ada ternak dengan status ini.</div>`
+          : `<div class="empty">${L.empty}</div>`
       }
     </div>
-    <p class="small muted" style="margin-top:12px">Status ditentukan oleh aturan dari data timbangan dan gerbang otomatis. Ketuk seekor ternak untuk melihat riwayat dan saran.</p>`;
+    <p class="small muted" style="margin-top:12px">${L.listNote}</p>`;
         app.querySelectorAll(".chip").forEach(
           (c) =>
             (c.onclick = () => {
@@ -525,12 +695,14 @@
         );
       }
 
+      // ---------- chart ----------
       function chart(h, target) {
         if (!h || h.length < 2) return "";
         const W = 640,
           H = 220,
           px = 44,
-          py = 18;
+          py = 18,
+          fs = 18;
         const ys = h.map((p) => p.kg),
           lo = Math.min(...ys) - 0.8,
           hi = Math.max(...ys) + 0.8;
@@ -542,32 +714,32 @@
               `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.kg).toFixed(1)}`,
           )
           .join(" ");
-        // expected path at target growth, anchored on the reading 14 days ago
         const i0 = Math.max(0, h.length - 15),
           k0 = h[i0].kg;
         const exp = `M${x(i0).toFixed(1)},${y(k0).toFixed(1)} L${x(h.length - 1).toFixed(1)},${y(k0 + target * (h.length - 1 - i0)).toFixed(1)}`;
         const ticks = [0, Math.floor(h.length / 2), h.length - 1];
         const last = h[h.length - 1];
-        return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Grafik bobot ${h.length} hari terakhir">
-    ${[lo + 1, (lo + hi) / 2, hi - 1].map((v) => `<line x1="${px}" x2="${W - px}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${px - 6}" y="${y(v) + 4}" font-size="18" text-anchor="end" fill="var(--muted)">${v.toFixed(0)}</text>`).join("")}
+        return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${t().chartAria(h.length)}">
+    ${[lo + 1, (lo + hi) / 2, hi - 1].map((v) => `<line x1="${px}" x2="${W - px}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${px - 8}" y="${y(v) + 6}" font-size="${fs}" text-anchor="end" fill="var(--muted)">${v.toFixed(0)}</text>`).join("")}
     <path d="${exp}" stroke="var(--water)" stroke-width="2" stroke-dasharray="6 5" fill="none"/>
     <path d="${line}" stroke="var(--brand)" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
     ${h.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.kg)}" r="2.5" fill="var(--brand)"/>`).join("")}
     <circle cx="${x(h.length - 1)}" cy="${y(last.kg)}" r="5" fill="var(--brand)" stroke="var(--raised)" stroke-width="2"/>
-    ${ticks.map((i) => `<text x="${x(i)}" y="${H - 2}" font-size="18" text-anchor="${i === 0 ? "start" : i === h.length - 1 ? "end" : "middle"}" fill="var(--muted)">${fmt.short(h[i].tanggal)}</text>`).join("")}
+    ${ticks.map((i) => `<text x="${x(i)}" y="${H - 2}" font-size="${fs}" text-anchor="${i === 0 ? "start" : i === h.length - 1 ? "end" : "middle"}" fill="var(--muted)">${fmt.short(h[i].tanggal)}</text>`).join("")}
   </svg>
-  <p class="small muted" style="margin-top:4px">Garis hijau: bobot tertimbang. Garis biru putus: laju target ${target.toFixed(2).replace(".", ",")} kg/hari dari 14 hari lalu.</p>`;
+  <p class="small muted" style="margin-top:4px">${t().chartNote(num(target, 2))}</p>`;
       }
 
+      // ---------- detail ----------
       async function renderDetail(tag) {
+        const L = t();
         let a = state.animals.find((x) => x.ear_tag === tag);
         if (!a) {
-          app.innerHTML = `<a class="back" href="#/">‹ Kembali</a><div class="err">Ternak ${esc(tag)} tidak ditemukan.</div>`;
+          app.innerHTML = `<a class="back" href="#/">${L.back}</a><div class="err">${L.notFound(esc(tag))}</div>`;
           return;
         }
         if (!a.riwayat_bobot) {
-          // the list endpoint is slim; fetch history once
-          app.innerHTML = `<a class="back" href="#/">‹ Semua ternak</a><p class="muted">Memuat riwayat ${tag}…</p>`;
+          app.innerHTML = `<a class="back" href="#/">${L.back}</a><p class="muted">${L.loadingHist(tag)}</p>`;
           try {
             Object.assign(a, await (await fetch(`/api/animals/${tag}`)).json());
           } catch (e) {
@@ -575,72 +747,83 @@
           }
         }
         const lvl = a.tingkat_sistem,
-          adv = state.advice[tag];
+          adv = state.advice[state.lang + ":" + tag];
+        const cls =
+          a.perubahan_persen <= -5
+            ? "down"
+            : a.perubahan_persen <= -3
+              ? "warn"
+              : "";
         app.innerHTML = `
-    <a class="back" href="#/">‹ Semua ternak</a>
+    <a class="back" href="#/">${L.back}</a>
     <div class="card">
       <div class="head">
         <div class="tag">${a.ear_tag}</div>
-        <span class="badge ${lvl}">${LEVEL[lvl]}</span>
+        <span class="badge ${lvl}">${L.level[lvl]}</span>
       </div>
-      <p class="muted">${a.jenis_kelamin}, ${a.umur_bulan} bulan, ${esc(a.ras)}, kandang ${esc(a.farm_id)}</p>
+      <p class="muted">${who(a)}, ${L.pen(esc(a.farm_id))}</p>
       <div class="readings">
-        <div class="reading"><div class="v ${a.perubahan_persen <= -5 ? "down" : a.perubahan_persen <= -3 ? "warn" : ""}">${fmt.kg(a.bobot_hari_ini_kg)}</div><div class="l">kg hari ini</div></div>
-        <div class="reading"><div class="v ${a.perubahan_persen <= -5 ? "down" : a.perubahan_persen <= -3 ? "warn" : ""}">${fmt.pct(a.perubahan_persen)}</div><div class="l">7 hari</div></div>
-        <div class="reading"><div class="v ${a.lewat_gerbang_48_jam_terakhir === 0 ? "down" : ""}">${a.lewat_gerbang_48_jam_terakhir}</div><div class="l">lewat gerbang, 2 hari</div></div>
+        <div class="reading"><div class="v ${cls}">${fmt.kg(a.bobot_hari_ini_kg)}</div><div class="l">${L.kgToday}</div></div>
+        <div class="reading"><div class="v ${cls}">${fmt.pct(a.perubahan_persen)}</div><div class="l">${L.d7}</div></div>
+        <div class="reading"><div class="v ${a.lewat_gerbang_48_jam_terakhir === 0 ? "down" : ""}">${a.lewat_gerbang_48_jam_terakhir}</div><div class="l">${L.gate2d}</div></div>
       </div>
-      ${a.alasan_alert.length ? `<ul class="reasons">${a.alasan_alert.map((r) => `<li class="${lvl}">${esc(r)}</li>`).join("")}</ul>` : `<p class="muted">Tidak ada sinyal yang perlu diwaspadai. Pertumbuhan ${(a.pertumbuhan_14_hari_kg_per_hari ?? 0).toFixed(2).replace(".", ",")} kg/hari.</p>`}
+      ${
+        a.alasan_alert.length
+          ? `<ul class="reasons">${a.alasan_alert.map((_, i) => `<li class="${lvl}">${esc(reasonText(a, i))}</li>`).join("")}</ul>`
+          : `<p class="muted">${L.noSignal(num(a.pertumbuhan_14_hari_kg_per_hari ?? 0, 2))}</p>`
+      }
     </div>
 
-    <h2>Bobot 30 hari terakhir</h2>
+    <h2>${L.chartTitle}</h2>
     <div class="card">${chart(a.riwayat_bobot, a.target_pertumbuhan_per_hari_kg)}</div>
 
-    <h2>Saran</h2>
+    <h2>${L.adviceTitle}</h2>
     <div class="card brand advice" id="advice">
-      ${
-        adv
-          ? adviceHTML(adv)
-          : `
-        <p class="muted">Gemini membaca riwayat ternak ini dan menjelaskan apa yang sebaiknya dicek dan dilakukan hari ini. Tidak mendiagnosis dan tidak menyebut obat.</p>
-        <button class="btn" id="ask">Minta saran</button>`
-      }
+      ${adv ? adviceHTML(adv) : `<p class="muted">${L.adviceIntro}</p><button class="btn" id="ask">${L.ask}</button>`}
     </div>`;
         const btn = document.getElementById("ask");
         if (btn) btn.onclick = () => getAdvice(tag);
       }
 
       function adviceHTML(s) {
-        const li = (xs) => (xs || []).map((x) => `<li>${esc(x)}</li>`).join("");
+        const L = t(),
+          li = (xs) => (xs || []).map((x) => `<li>${esc(x)}</li>`).join("");
         return `
     <p class="sum">${esc(s.ringkasan)}</p>
-    ${s.cek_hari_ini?.length ? `<h3>Cek hari ini</h3><ul>${li(s.cek_hari_ini)}</ul>` : ""}
-    ${s.lakukan?.length ? `<h3>Lakukan</h3><ul>${li(s.lakukan)}</ul>` : ""}
-    ${s.hubungi_dokter_hewan_jika && s.hubungi_dokter_hewan_jika !== "-" ? `<p class="vet"><b>Hubungi dokter hewan jika:</b> ${esc(s.hubungi_dokter_hewan_jika)}</p>` : ""}
-    <p class="small muted" style="margin:12px 0 0">Saran dibuat oleh ${esc(s._meta?.model || "Gemini")} dalam ${((s._meta?.latency_ms || 0) / 1000).toFixed(1).replace(".", ",")} detik. Keputusan tetap di tangan Anda dan dokter hewan.</p>`;
+    ${s.cek_hari_ini?.length ? `<h3>${L.check}</h3><ul>${li(s.cek_hari_ini)}</ul>` : ""}
+    ${s.lakukan?.length ? `<h3>${L.do}</h3><ul>${li(s.lakukan)}</ul>` : ""}
+    ${s.hubungi_dokter_hewan_jika && s.hubungi_dokter_hewan_jika !== "-" ? `<p class="vet"><b>${L.vet}</b> ${esc(s.hubungi_dokter_hewan_jika)}</p>` : ""}
+    <p class="small muted" style="margin:12px 0 0">${L.by(esc(s._meta?.model || "Gemini"), num((s._meta?.latency_ms || 0) / 1000, 1))}</p>`;
       }
 
       async function getAdvice(tag) {
-        const box = document.getElementById("advice");
-        box.innerHTML = `<p class="pulse">Gemini sedang membaca data ternak ${tag}…</p>`;
+        const L = t(),
+          lang = state.lang,
+          box = document.getElementById("advice");
+        box.innerHTML = `<p class="pulse">${L.asking(tag)}</p>`;
         try {
-          const r = await fetch(`/api/animals/${tag}/advice`);
+          const r = await fetch(`/api/animals/${tag}/advice?lang=${lang}`);
           if (!r.ok) {
             const e = await r.json().catch(() => ({}));
             throw new Error(e.detail || "API " + r.status);
           }
           const data = await r.json();
-          state.advice[tag] = data.saran;
-          box.innerHTML = adviceHTML(data.saran);
+          state.advice[lang + ":" + tag] = data.saran;
+          if (state.lang === lang && document.getElementById("advice"))
+            box.innerHTML = adviceHTML(data.saran);
         } catch (err) {
-          box.innerHTML = `<div class="err">Saran belum bisa dibuat: ${esc(err.message)}</div><p style="margin-top:12px"><button class="btn" id="ask">Coba lagi</button></p>`;
+          box.innerHTML = `<div class="err">${L.adviceErr(esc(err.message))}</div><p style="margin-top:12px"><button class="btn" id="ask">${L.retry}</button></p>`;
           document.getElementById("ask").onclick = () => getAdvice(tag);
         }
       }
 
+      // ---------- boot ----------
+      setLang(state.lang);
+      app.innerHTML = `<p class="muted">${t().loading}</p>`;
       loadList()
         .then(route)
         .catch((e) => {
-          app.innerHTML = `<div class="err">Data kandang belum bisa dimuat: ${esc(e.message)}. Muat ulang halaman untuk mencoba lagi.</div>`;
+          app.innerHTML = `<div class="err">${t().loadErr(esc(e.message))}</div>`;
         });
       addEventListener("hashchange", route);
     </script>

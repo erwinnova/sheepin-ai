@@ -2,28 +2,28 @@
 Sheepin AI - API and web app.
 
 Endpoints:
-  GET /                              -> farmer-facing web app (static/index.html)
-  GET /api/health                    -> service status
-  GET /api/animals                   -> all animals with rule results, flagged first
-  GET /api/animals/{ear_tag}         -> one animal's rule result
-  GET /api/animals/{ear_tag}/advice  -> rule result + Gemini advisory
+  GET /                                    -> farmer-facing web app (static/index.html)
+  GET /api/health                          -> service status
+  GET /api/animals                         -> all animals with rule results, flagged first
+  GET /api/animals/{ear_tag}               -> one animal's rule result + 30-day history
+  GET /api/animals/{ear_tag}/advice?lang=  -> rule result + Gemini advisory (lang: id | en)
 
 Local run:  uvicorn main:app --reload --port 8080
 """
 
 import os
 import time
-
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 
-from app.advisor import MODEL, advise
+from app.advisor import MODEL, SUPPORTED_LANGS, advise, normalize_lang
 from app.detect import run, to_gemini_payload
 
-app = FastAPI(title="Sheepin AI", version="0.1.0")
+app = FastAPI(title="Sheepin AI", version="0.2.0")
 
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 CACHE_TTL_SECONDS = int(os.environ.get("DETECT_CACHE_TTL", "300"))
 _detect_cache: dict = {"at": 0.0, "records": []}
 
@@ -41,10 +41,7 @@ def find(ear_tag: str) -> dict:
     for r in records():
         if r["ear_tag"] == ear_tag:
             return r
-    raise HTTPException(status_code=404, detail=f"ear_tag {ear_tag} tidak ditemukan")
-
-
-STATIC_DIR = Path(__file__).resolve().parent / "static"
+    raise HTTPException(status_code=404, detail=f"ear_tag {ear_tag} not found")
 
 
 @app.get("/", include_in_schema=False)
@@ -54,7 +51,8 @@ def root():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "model": MODEL, "animals_cached": len(_detect_cache["records"])}
+    return {"status": "ok", "model": MODEL, "languages": list(SUPPORTED_LANGS),
+            "animals_cached": len(_detect_cache["records"])}
 
 
 @app.get("/api/animals")
@@ -73,10 +71,10 @@ def get_animal(ear_tag: str):
 
 
 @app.get("/api/animals/{ear_tag}/advice")
-def get_advice(ear_tag: str):
+def get_advice(ear_tag: str, lang: str = Query("id", description="id or en")):
     record = find(ear_tag)
     try:
-        advice = advise(to_gemini_payload(record))
+        advice = advise(to_gemini_payload(record), lang=normalize_lang(lang))
     except ValueError as e:
         raise HTTPException(status_code=502, detail=str(e))
     return {"deteksi": record, "saran": advice}

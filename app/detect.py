@@ -106,6 +106,7 @@ def slope_per_day(points: list[dict]) -> float | None:
 def evaluate(f: dict) -> dict:
     """Apply the three rules to one feature row and build the animal record."""
     reasons: list[str] = []
+    codes: list[str] = []
     level = "normal"
 
     kg_now, kg_6d, kg_14d = f.get("kg_now"), f.get("kg_6d"), f.get("kg_14d")
@@ -116,9 +117,11 @@ def evaluate(f: dict) -> dict:
         change_pct = round(100 * (kg_now - kg_6d) / kg_6d, 1)
         if change_pct <= DROP_SEGERA_PCT:
             reasons.append("bobot turun lebih dari 5% dalam 7 hari")
+            codes.append("drop_5")
             level = "segera"
         elif change_pct <= DROP_WASPADA_PCT:
             reasons.append("bobot turun 3-5% dalam 7 hari")
+            codes.append("drop_3")
             level = max_level(level, "waspada")
 
     # R2 - slow growth over 14 days (regression slope over the last 15 readings,
@@ -130,12 +133,14 @@ def evaluate(f: dict) -> dict:
                 and change_pct > DROP_WASPADA_PCT:
             # only report slow growth when R1 has not already fired on a drop
             reasons.append("pertumbuhan 14 hari di bawah 60% target")
+            codes.append("slow_growth")
             level = max_level(level, "waspada")
 
     # R3 - no gate passes for GATE_DAYS calendar days
     passes_recent = int(f.get("passes_recent") or 0)
     if passes_recent == 0:
         reasons.append(f"tidak lewat gerbang {GATE_DAYS * 24} jam")
+        codes.append("no_gate")
         level = "segera"
 
     today = f["today"]
@@ -156,6 +161,7 @@ def evaluate(f: dict) -> dict:
         "lewat_gerbang_48_jam_terakhir": passes_recent,
         "rata_rata_lewat_gerbang_per_hari": round(float(f.get("avg_passes_per_day") or 0), 1),
         "alasan_alert": reasons,
+        "alasan_kode": codes,
         "tingkat_sistem": level,
         "riwayat_bobot": history,
     }
