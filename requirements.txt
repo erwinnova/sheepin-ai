@@ -1,2 +1,5 @@
 fastapi
 uvicorn
+google-cloud-bigquery
+google-genai
+jinja2
