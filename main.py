@@ -2,7 +2,7 @@
 Sheepin AI - API and web app.
 
 Endpoints:
-  GET /                                    -> farmer-facing web app (static/index.html)
+  GET /  and  GET /ternak/{ear_tag}        -> farmer-facing web app (static/index.html)
   GET /api/health                          -> service status
   GET /api/animals                         -> all animals with rule results, flagged first
   GET /api/animals/{ear_tag}               -> one animal's rule result + 30-day history
@@ -49,6 +49,12 @@ def root():
     return FileResponse(STATIC_DIR / "index.html")
 
 
+@app.get("/ternak/{ear_tag}", include_in_schema=False)
+def animal_page(ear_tag: str):
+    """Clean URLs (/ternak/0417) load the same page; the browser does the routing."""
+    return FileResponse(STATIC_DIR / "index.html")
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "model": MODEL, "languages": list(SUPPORTED_LANGS),
@@ -60,6 +66,10 @@ def list_animals():
     rs = records()
     summary = {lvl: sum(1 for r in rs if r["tingkat_sistem"] == lvl)
                for lvl in ("segera", "waspada", "normal")}
+    summary["potensi_hemat_bulan_rp"] = sum(
+        (r.get("potensi_hemat") or {}).get("manfaat_bersih_rp_per_bulan") or 0 for r in rs)
+    summary["ekor_dengan_potensi"] = sum(
+        1 for r in rs if ((r.get("potensi_hemat") or {}).get("manfaat_bersih_rp_per_bulan") or 0) > 0)
     # the list stays light; /api/animals/{ear_tag} carries the 30-day history
     slim = [{k: v for k, v in r.items() if k != "riwayat_bobot"} for r in rs]
     return {"ringkasan": summary, "ternak": slim}

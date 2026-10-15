@@ -2,9 +2,11 @@
 Sheepin AI - synthetic demo data generator.
 
 Produces three CSV files in ./data that match the BigQuery schema:
-  animals.csv      ear_tag, sex, dob, breed, farm_id
+  animals.csv      ear_tag, sex, dob, breed, farm_id, kandang, target_kg
   weights.csv      ear_tag, ts, kg
   gate_events.csv  ear_tag, ts, direction
+  feed_logs.csv    tanggal, farm_id, kandang, ear_tag, jenis_pakan, kg_segar, harga_per_kg_rp
+                   (farm F001 records feed per animal, F002 per pen; pen F002/K2 gets poor feed)
 
 40 animals, 60 days of daily weighing (Smart Scale) and gate passes (auto gate).
 Four animals carry deliberate patterns that mirror the Gemini test cases:
@@ -36,6 +38,15 @@ SCALE_NOISE_KG = 0.2       # measurement noise of the Smart Scale (does not accu
 
 BREEDS = ["Garut", "Ekor Tipis", "Ekor Gemuk", "Garut", "Ekor Tipis"]
 FARMS = ["F001", "F001", "F001", "F002"]
+PENS = {"F001": ["K1", "K2", "K3"], "F002": ["K1", "K2"]}
+FEED_MODE = {"F001": "ternak", "F002": "kandang"}   # how each farm records feed
+POOR_FEED_PEN = ("F002", "K2")                       # same gain, ~60% more feed
+
+# as-fed feed types: dry-matter fraction and price per fresh kg (IDR)
+FEED_TYPES = {
+    "hijauan":    {"dm": 0.25, "share_dm": 0.65, "price": 1_500},
+    "konsentrat": {"dm": 0.88, "share_dm": 0.35, "price": 5_000},
+}
 
 # ear_tag -> (sex, age_months, start_weight_kg, pattern)
 SPECIAL = {
@@ -54,21 +65,27 @@ def main() -> None:
     os.makedirs(OUT_DIR, exist_ok=True)
 
     animals = build_animals(end_day)
-    weights, gate_events = [], []
+    weights, gate_events, intake = [], [], []
     for a in animals:
-        w, g = simulate_animal(a, start_day)
+        w, g, dm = simulate_animal(a, start_day)
         weights.extend(w)
         gate_events.extend(g)
+        intake.extend(dm)
+    feed_logs = build_feed_logs(animals, intake)
 
-    write_csv("animals.csv", ["ear_tag", "sex", "dob", "breed", "farm_id"],
-              [[a["ear_tag"], a["sex"], a["dob"], a["breed"], a["farm_id"]] for a in animals])
+    write_csv("animals.csv", ["ear_tag", "sex", "dob", "breed", "farm_id", "kandang", "target_kg"],
+              [[a["ear_tag"], a["sex"], a["dob"], a["breed"], a["farm_id"], a["kandang"], a["target_kg"]]
+               for a in animals])
     write_csv("weights.csv", ["ear_tag", "ts", "kg"], weights)
     write_csv("gate_events.csv", ["ear_tag", "ts", "direction"], gate_events)
+    write_csv("feed_logs.csv", ["tanggal", "farm_id", "kandang", "ear_tag", "jenis_pakan",
+                                "kg_segar", "harga_per_kg_rp"], feed_logs)
 
     print(f"Period: {start_day} -> {end_day} ({N_DAYS} days)")
     print(f"animals.csv      {len(animals):>6} rows")
     print(f"weights.csv      {len(weights):>6} rows")
     print(f"gate_events.csv  {len(gate_events):>6} rows")
+    print(f"feed_logs.csv    {len(feed_logs):>6} rows")
     print("Patterned animals: " + ", ".join(f"{t} ({p[3]})" for t, p in SPECIAL.items()))
 
 
@@ -92,12 +109,17 @@ def build_animals(end_day: date) -> list[dict]:
 
 def make_animal(tag, sex, age_months, start_kg, pattern, end_day) -> dict:
     dob = end_day - timedelta(days=int(age_months * 30.4))
+    # Target sale weight is entered by the farmer per animal in the Sheepin app.
+    # Demo: 8-14 kg above the starting weight, rounded to whole kg.
+    target_kg = float(round(start_kg + random.uniform(8, 14)))
     return {
         "ear_tag": tag,
         "sex": sex,
         "dob": dob.isoformat(),
         "breed": random.choice(BREEDS),
-        "farm_id": random.choice(FARMS),
+        "farm_id": (farm := random.choice(FARMS)),
+        "kandang": random.choice(PENS[farm]),
+        "target_kg": target_kg,
         "start_kg": start_kg,
         "pattern": pattern,
     }
@@ -111,8 +133,9 @@ def simulate_animal(a: dict, start_day: date):
     if pattern == "healthy_above_target":
         base_adg = 0.14
 
-    weights, gates = [], []
+    weights, gates, intake = [], [], []
     kg = a["start_kg"]
+    poor_feed = (a["farm_id"], a["kandang"]) == POOR_FEED_PEN
 
     for d in range(N_DAYS):
         day = start_day + timedelta(days=d)
@@ -141,6 +164,16 @@ def simulate_animal(a: dict, start_day: date):
         kg = max(kg, 15.0)
         reading = kg + random.gauss(0, SCALE_NOISE_KG)
 
+        # Dry-matter intake: ~2% of body weight + 0.2 kg (FCR about 6-8 for a
+        # healthy local sheep); a sick animal eats far less; a pen on poor feed
+        # needs ~60% more of it for the same gain.
+        dm = 0.02 * kg + 0.2
+        if adg < 0:
+            dm *= 0.4
+        if poor_feed:
+            dm *= 1.6
+        intake.append((a, day, dm * random.uniform(0.92, 1.08)))
+
         # Smart Scale reading, once a day in the morning.
         ts = datetime.combine(day, datetime.min.time()) + timedelta(
             hours=6, minutes=random.randint(0, 90))
@@ -156,7 +189,26 @@ def simulate_animal(a: dict, start_day: date):
             gates.append([a["ear_tag"], gts.strftime("%Y-%m-%d %H:%M:%S"),
                           "in" if i % 2 == 0 else "out"])
 
-    return weights, gates
+    return weights, gates, intake
+
+
+def build_feed_logs(animals: list[dict], intake: list[tuple]) -> list[list]:
+    """Turn daily dry-matter intake into the rows a farmer would record."""
+    rows = []
+    pen_totals: dict[tuple, dict[str, float]] = {}
+    for a, day, dm in intake:
+        mode = FEED_MODE[a["farm_id"]]
+        for name, ft in FEED_TYPES.items():
+            fresh = dm * ft["share_dm"] / ft["dm"]
+            if mode == "ternak":
+                rows.append([day.isoformat(), a["farm_id"], a["kandang"], a["ear_tag"],
+                             name, round(fresh, 2), ft["price"]])
+            else:
+                key = (day.isoformat(), a["farm_id"], a["kandang"], name)
+                pen_totals[key] = pen_totals.get(key, 0.0) + fresh
+    for (day, farm, pen, name), fresh in sorted(pen_totals.items()):
+        rows.append([day, farm, pen, "", name, round(fresh, 1), FEED_TYPES[name]["price"]])
+    return rows
 
 
 def poisson(lam: float) -> int:

@@ -308,6 +308,7 @@
       }
       .reading .l {
         font-size: 11px;
+        line-height: 16px;
         letter-spacing: 0.04em;
         text-transform: uppercase;
         color: var(--muted);
@@ -393,6 +394,22 @@
         padding-top: 12px;
         margin-top: 12px;
       }
+      details {
+        margin-top: 12px;
+        border-top: 1px solid var(--line);
+        padding-top: 8px;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--brand);
+        min-height: 32px;
+        display: flex;
+        align-items: center;
+      }
+      details p {
+        margin: 6px 0;
+      }
       .err {
         background: var(--danger-bg);
         color: var(--danger-ink);
@@ -464,6 +481,7 @@
             drop_3: "bobot turun 3–5% dalam 7 hari",
             slow_growth: "pertumbuhan 14 hari di bawah 60% target",
             no_gate: "tidak lewat gerbang 48 jam",
+            fcr_high: "konversi pakan 14 hari di atas 10",
           },
           sex: { jantan: "jantan", betina: "betina" },
           months: (n) => `${n} bulan`,
@@ -484,6 +502,83 @@
           chartAria: (n) => `Grafik bobot ${n} hari terakhir`,
           chartNote: (g) =>
             `Garis hijau: bobot tertimbang. Garis biru putus: laju target ${g} kg/hari dari 14 hari lalu.`,
+          growthTitle: "Nilai dan target jual",
+          adg: "pertumbuhan 14 hari",
+          perDay: "kg/hari",
+          adgTarget: (g) => `target ${g}`,
+          valueNow: "nilai hari ini",
+          change7: "7 hari",
+          targetW: "bobot target",
+          remaining: (r) => `${r} kg lagi`,
+          reached: "Bobot target sudah tercapai.",
+          eta: (d, dt) =>
+            `Diperkirakan sampai target dalam ${d} hari, sekitar ${dt}.`,
+          noEta: "Tidak bisa diperkirakan karena bobot sedang turun.",
+          sellNow: "dijual hari ini",
+          sellTarget: "dijual di target",
+          sellDiff: "selisih",
+          priceNote: (p) =>
+            `Harga pasar ${p}/kg bobot hidup, Oktober 2026. Bobot target diisi peternak di aplikasi Sheepin.`,
+          feedTitle: "Pakan dan konversi",
+          fcr: "FCR 14 hari",
+          fcrUnit: "kg BK per kg kenaikan",
+          costPerKg: "biaya pakan per kg kenaikan",
+          feed14: (bk, rp, g) =>
+            `14 hari terakhir: ${bk} kg bahan kering (${rp}) untuk kenaikan ${g} kg.`,
+          noFcr: "FCR tidak dihitung karena bobot tidak naik dalam 14 hari.",
+          modeOwn: "Dari catatan pakan per ekor.",
+          modePen: (k) =>
+            `Estimasi dari catatan pakan kandang ${k}, dibagi menurut bobot.`,
+          penLine: (k, n, f, rp) =>
+            `Kandang ${k} (${n} ekor): FCR ${f}, ${rp} per kg kenaikan.`,
+          fcrNote:
+            "Basis bahan kering: hijauan 25%, konsentrat 88%. Di bawah 10 dianggap wajar untuk domba lokal.",
+          needTitle: "Kebutuhan pakan ideal hari ini",
+          needLine: (bk, pct, kg) =>
+            `±${bk} kg bahan kering per hari (${pct}% dari bobot badan ${kg} kg)`,
+          needFresh: (h, k) => `≈ ${h} kg hijauan segar + ${k} kg konsentrat`,
+          eaten: (bk, pct) =>
+            `Rata-rata termakan 14 hari terakhir: ${bk} kg bahan kering per hari, ${pct}% dari kebutuhan.`,
+          eatenTag: (pct) =>
+            pct < 80
+              ? "Kurang dari kebutuhan."
+              : pct > 125
+                ? "Lebih dari kebutuhan."
+                : "Sesuai kebutuhan.",
+          noFeedLog:
+            "Belum ada catatan pakan untuk ternak atau kandang ini dalam 14 hari terakhir.",
+          whatFcr: "Apa itu FCR?",
+          fcrExplain: [
+            "FCR (Feed Conversion Ratio) adalah berapa kg pakan kering yang dibutuhkan untuk menaikkan bobot 1 kg.",
+            "Rumus: FCR = pakan bahan kering yang termakan ÷ kenaikan bobot, dihitung dari 14 hari terakhir.",
+            "Contoh: 6 kg pakan kering untuk naik 1 kg berarti FCR 6. Makin kecil angkanya, makin hemat pakannya.",
+            "Rumus kebutuhan pakan ideal: bahan kering per hari = 2,5% × bobot badan, lalu dibagi 65% hijauan dan 35% konsentrat.",
+            "Bahan kering (BK) adalah pakan tanpa kandungan air: 1 kg hijauan segar ≈ 0,25 kg BK, 1 kg konsentrat ≈ 0,88 kg BK.",
+          ],
+          savingsBanner: (rp, n) =>
+            `Potensi penghematan bulan ini: <b>${rp}</b> dari ${n} ekor`,
+          savingsBannerNote:
+            "potensi dari pakan berlebih dan pertumbuhan di bawah target, belum terverifikasi oleh timbangan",
+          savingsTitle: "Potensi hemat per bulan",
+          sNet: "manfaat bersih",
+          sFeed: "pakan berlebih yang bisa dihemat",
+          sGrowth: "nilai pertumbuhan di bawah target",
+          sExtra: "biaya pakan tambahan untuk mengejarnya",
+          sNone: "Tidak ada potensi hemat; pakan dan pertumbuhan sudah sesuai.",
+          sSick:
+            "Tidak dihitung selama ternak ditandai segera atau bobotnya turun; nafsu makannya tidak mencerminkan jatah.",
+          sNoWeight: "Tidak dihitung tanpa data bobot.",
+          sNeedFeed:
+            "Isi jatah pakan kandang ini untuk melihat potensi hemat dari pakan.",
+          sGrowthNote:
+            "Pakan sudah cukup; pertumbuhan lambat ini kemungkinan bukan karena jatah. Cek kesehatan dan kualitas pakan.",
+          sHow: "Bagaimana angka ini dihitung?",
+          sExplain: [
+            "Pakan berlebih = (bahan kering termakan − kebutuhan ideal) × harga pakan per kg bahan kering × 30 hari.",
+            "Nilai pertumbuhan = (target 0,12 kg/hari − pertumbuhan aktual) × 30 hari × harga jual Rp 90.000/kg.",
+            "Manfaat bersih = pakan berlebih + nilai pertumbuhan − biaya pakan tambahan yang diperlukan.",
+            "Ini potensi, dihitung dari aturan kebutuhan pakan dan harga pasar. Angka terverifikasi dihitung setelah 2–3 minggu dari data timbangan.",
+          ],
           adviceTitle: "Saran",
           adviceIntro:
             "Gemini membaca riwayat ternak ini dan menjelaskan apa yang sebaiknya dicek dan dilakukan hari ini. Tidak mendiagnosis dan tidak menyebut obat.",
@@ -514,6 +609,7 @@
             drop_3: "weight down 3–5% in 7 days",
             slow_growth: "14-day growth below 60% of target",
             no_gate: "no gate passes for 48 hours",
+            fcr_high: "14-day feed conversion above 10",
           },
           sex: { jantan: "male", betina: "female" },
           months: (n) => `${n} months`,
@@ -533,6 +629,84 @@
           chartAria: (n) => `Weight chart, last ${n} days`,
           chartNote: (g) =>
             `Green line: scale readings. Dashed blue: target rate of ${g} kg/day from 14 days ago.`,
+          growthTitle: "Value and sale target",
+          adg: "14-day growth",
+          perDay: "kg/day",
+          adgTarget: (g) => `target ${g}`,
+          valueNow: "value today",
+          change7: "7 days",
+          targetW: "target weight",
+          remaining: (r) => `${r} kg to go`,
+          reached: "Target weight reached.",
+          eta: (d, dt) =>
+            `Expected to reach target in ${d} days, around ${dt}.`,
+          noEta: "Cannot be estimated while weight is falling.",
+          sellNow: "sold today",
+          sellTarget: "sold at target",
+          sellDiff: "difference",
+          priceNote: (p) =>
+            `Market price ${p}/kg live weight, October 2026. Target weight is set by the farmer in the Sheepin app.`,
+          feedTitle: "Feed and conversion",
+          fcr: "14-day FCR",
+          fcrUnit: "kg DM per kg gain",
+          costPerKg: "feed cost per kg gain",
+          feed14: (bk, rp, g) =>
+            `Last 14 days: ${bk} kg dry matter (${rp}) for ${g} kg of gain.`,
+          noFcr:
+            "FCR not calculated because weight did not increase over 14 days.",
+          modeOwn: "From this animal's own feed log.",
+          modePen: (k) =>
+            `Estimated from pen ${k}'s feed log, split by body weight.`,
+          penLine: (k, n, f, rp) =>
+            `Pen ${k} (${n} animals): FCR ${f}, ${rp} per kg gain.`,
+          fcrNote:
+            "Dry-matter basis: forage 25%, concentrate 88%. Below 10 is considered normal for local sheep.",
+          needTitle: "Ideal feed requirement today",
+          needLine: (bk, pct, kg) =>
+            `±${bk} kg dry matter per day (${pct}% of ${kg} kg body weight)`,
+          needFresh: (h, k) => `≈ ${h} kg fresh forage + ${k} kg concentrate`,
+          eaten: (bk, pct) =>
+            `Average eaten over the last 14 days: ${bk} kg dry matter per day, ${pct}% of requirement.`,
+          eatenTag: (pct) =>
+            pct < 80
+              ? "Below requirement."
+              : pct > 125
+                ? "Above requirement."
+                : "Within requirement.",
+          noFeedLog:
+            "No feed log for this animal or its pen in the last 14 days.",
+          whatFcr: "What is FCR?",
+          fcrExplain: [
+            "FCR (Feed Conversion Ratio) is how many kg of dry feed it takes to add 1 kg of body weight.",
+            "Formula: FCR = dry matter eaten ÷ weight gained, over the last 14 days.",
+            "Example: 6 kg of dry feed for 1 kg of gain means FCR 6. The lower the number, the more efficient the feeding.",
+            "Ideal feed requirement: dry matter per day = 2.5% × body weight, split 65% forage and 35% concentrate.",
+            "Dry matter (DM) is feed without its water: 1 kg fresh forage ≈ 0.25 kg DM, 1 kg concentrate ≈ 0.88 kg DM.",
+          ],
+          savingsBanner: (rp, n) =>
+            `Potential savings this month: <b>${rp}</b> across ${n} animals`,
+          savingsBannerNote:
+            "potential, from feed above requirement and growth below target, not yet verified by the scale",
+          savingsTitle: "Potential savings per month",
+          sNet: "net benefit",
+          sFeed: "excess feed that can be saved",
+          sGrowth: "value of growth below target",
+          sExtra: "extra feed cost to close the gap",
+          sNone: "No potential savings; feeding and growth are on track.",
+          sSick:
+            "Not calculated while the animal is flagged urgent or losing weight; its appetite does not reflect the ration.",
+          sNoWeight: "Not calculated without weight data.",
+          sNeedFeed:
+            "Enter this pen's daily ration to see the feed part of the savings.",
+          sGrowthNote:
+            "Feed is sufficient; this slow growth is probably not a ration problem. Check health and feed quality.",
+          sHow: "How is this calculated?",
+          sExplain: [
+            "Excess feed = (dry matter eaten − ideal requirement) × feed price per kg dry matter × 30 days.",
+            "Growth value = (target 0.12 kg/day − actual growth) × 30 days × sale price IDR 90,000/kg.",
+            "Net benefit = excess feed + growth value − extra feed needed to close the gap.",
+            "These are potential figures from the feed requirement rule and market prices. Verified figures come after 2–3 weeks of scale data.",
+          ],
           adviceTitle: "Advice",
           adviceIntro:
             "Gemini reads this animal's history and explains what to check and do today. It does not diagnose and does not name medicines.",
@@ -610,6 +784,14 @@
             month: "short",
           }),
       };
+      const rp = (n) =>
+        n == null
+          ? "–"
+          : new Intl.NumberFormat(t().locale, {
+              style: "currency",
+              currency: "IDR",
+              maximumFractionDigits: 0,
+            }).format(n);
       const esc = (s) =>
         String(s ?? "").replace(
           /[&<>"]/g,
@@ -639,10 +821,22 @@
 
       // ---------- routing ----------
       function route() {
-        const m = location.hash.match(/^#\/ternak\/([A-Za-z0-9_-]+)$/);
+        let m = location.pathname.match(/^\/ternak\/([A-Za-z0-9_-]+)\/?$/);
+        if (!m) {
+          // old links with a hash still work
+          const h = location.hash.match(/^#\/ternak\/([A-Za-z0-9_-]+)$/);
+          if (h) {
+            history.replaceState(null, "", `/ternak/${h[1]}`);
+            m = h;
+          }
+        }
         if (m) renderDetail(m[1]);
         else renderList();
         window.scrollTo(0, 0);
+      }
+      function go(href) {
+        history.pushState(null, "", href);
+        route();
       }
 
       // ---------- list ----------
@@ -654,6 +848,14 @@
         );
         app.innerHTML = `
     <h1>${L.title(s.segera + s.waspada)}</h1>
+    ${
+      s.potensi_hemat_bulan_rp > 0
+        ? `<div class="card brand" style="padding:16px 20px;margin-bottom:16px">
+      <p style="margin:0;font-size:17px">${L.savingsBanner(rp(s.potensi_hemat_bulan_rp), s.ekor_dengan_potensi)}</p>
+      <p class="small muted" style="margin:4px 0 0">${L.savingsBannerNote}</p>
+    </div>`
+        : ""
+    }
     <div class="counts">
       ${["segera", "waspada", "normal"]
         .map(
@@ -671,7 +873,7 @@
           ? rows
               .map(
                 (a) => `
-        <a class="row" href="#/ternak/${a.ear_tag}">
+        <a class="row" href="/ternak/${a.ear_tag}" data-nav>
           <div class="tag">${a.ear_tag}</div>
           <div>
             <span class="badge ${a.tingkat_sistem}">${L.level[a.tingkat_sistem]}</span>
@@ -735,11 +937,11 @@
         const L = t();
         let a = state.animals.find((x) => x.ear_tag === tag);
         if (!a) {
-          app.innerHTML = `<a class="back" href="#/">${L.back}</a><div class="err">${L.notFound(esc(tag))}</div>`;
+          app.innerHTML = `<a class="back" href="/" data-nav>${L.back}</a><div class="err">${L.notFound(esc(tag))}</div>`;
           return;
         }
         if (!a.riwayat_bobot) {
-          app.innerHTML = `<a class="back" href="#/">${L.back}</a><p class="muted">${L.loadingHist(tag)}</p>`;
+          app.innerHTML = `<a class="back" href="/" data-nav>${L.back}</a><p class="muted">${L.loadingHist(tag)}</p>`;
           try {
             Object.assign(a, await (await fetch(`/api/animals/${tag}`)).json());
           } catch (e) {
@@ -755,7 +957,7 @@
               ? "warn"
               : "";
         app.innerHTML = `
-    <a class="back" href="#/">${L.back}</a>
+    <a class="back" href="/" data-nav>${L.back}</a>
     <div class="card">
       <div class="head">
         <div class="tag">${a.ear_tag}</div>
@@ -777,12 +979,145 @@
     <h2>${L.chartTitle}</h2>
     <div class="card">${chart(a.riwayat_bobot, a.target_pertumbuhan_per_hari_kg)}</div>
 
+    ${growthHTML(a)}
+
+    ${feedHTML(a)}
+
+    ${savingsHTML(a)}
+
     <h2>${L.adviceTitle}</h2>
     <div class="card brand advice" id="advice">
       ${adv ? adviceHTML(adv) : `<p class="muted">${L.adviceIntro}</p><button class="btn" id="ask">${L.ask}</button>`}
     </div>`;
         const btn = document.getElementById("ask");
         if (btn) btn.onclick = () => getAdvice(tag);
+      }
+
+      function growthHTML(a) {
+        const g = a.pertumbuhan,
+          L = t();
+        if (!g) return "";
+        const adg = a.pertumbuhan_14_hari_kg_per_hari,
+          tgt = a.target_pertumbuhan_per_hari_kg;
+        const adgCls =
+          adg == null ? "" : adg < 0 ? "down" : adg < 0.6 * tgt ? "warn" : "";
+        const diff =
+          g.nilai_di_target_rp != null && g.nilai_hari_ini_rp != null
+            ? g.nilai_di_target_rp - g.nilai_hari_ini_rp
+            : null;
+        const road = g.target_tercapai
+          ? L.reached
+          : g.perkiraan_hari_ke_target != null
+            ? L.eta(
+                g.perkiraan_hari_ke_target,
+                fmt.date(g.perkiraan_tanggal_target),
+              )
+            : L.noEta;
+        return `
+    <h2>${L.growthTitle}</h2>
+    <div class="card">
+      <div class="readings">
+        <div class="reading"><div class="v ${adgCls}">${adg == null ? "–" : num(adg, 2)}</div><div class="l">${L.adg}, ${L.perDay}<br>${L.adgTarget(num(tgt, 2))}</div></div>
+        <div class="reading"><div class="v">${rp(g.nilai_hari_ini_rp)}</div><div class="l">${L.valueNow}</div></div>
+        <div class="reading"><div class="v ${g.selisih_nilai_7_hari_rp < 0 ? "down" : ""}">${g.selisih_nilai_7_hari_rp > 0 ? "+" : ""}${rp(g.selisih_nilai_7_hari_rp)}</div><div class="l">${L.change7}</div></div>
+      </div>
+      ${
+        g.bobot_target_kg != null
+          ? `
+      <p style="margin-top:12px"><b>${fmt.kg(g.bobot_target_kg)} ${L.kg}</b> <span class="muted">${L.targetW}${g.target_tercapai ? "" : ", " + L.remaining(fmt.kg(g.sisa_ke_target_kg))}</span></p>
+      <p>${road}</p>
+      ${
+        !g.target_tercapai && diff != null
+          ? `
+      <table style="width:100%;border-collapse:collapse;margin-top:8px;font-variant-numeric:tabular-nums">
+        <tr><td class="muted">${L.sellNow}</td><td style="text-align:right;font-family:var(--serif);font-size:18px">${rp(g.nilai_hari_ini_rp)}</td></tr>
+        <tr><td class="muted">${L.sellTarget}</td><td style="text-align:right;font-family:var(--serif);font-size:18px">${rp(g.nilai_di_target_rp)}</td></tr>
+        <tr style="border-top:1px solid var(--line)"><td class="muted" style="padding-top:6px">${L.sellDiff}</td><td style="text-align:right;font-family:var(--serif);font-size:18px;padding-top:6px;color:var(--brand)">+${rp(diff)}</td></tr>
+      </table>`
+          : ""
+      }`
+          : ""
+      }
+      <p class="small muted" style="margin:12px 0 0">${L.priceNote(rp(g.harga_per_kg_rp))}</p>
+    </div>`;
+      }
+
+      function feedHTML(a) {
+        const p = a.pakan,
+          n = a.kebutuhan_pakan,
+          L = t();
+        if (!p && !n) return "";
+        const k = p && p.kandang;
+        const fcrCls = !p || p.fcr == null ? "" : p.fcr > 10 ? "warn" : "";
+        const eatCls =
+          !p || p.persen_dari_kebutuhan == null
+            ? ""
+            : p.persen_dari_kebutuhan < 80 || p.persen_dari_kebutuhan > 125
+              ? "warn"
+              : "";
+        return `
+    <h2>${L.feedTitle}</h2>
+    <div class="card">
+      ${
+        p
+          ? `
+      <div class="readings" style="grid-template-columns:1fr 1fr">
+        <div class="reading"><div class="v ${fcrCls}">${p.fcr == null ? "–" : num(p.fcr, 1)}</div><div class="l">${L.fcr}<br>${L.fcrUnit}</div></div>
+        <div class="reading"><div class="v ${fcrCls}">${rp(p.biaya_per_kg_kenaikan_rp)}</div><div class="l">${L.costPerKg}</div></div>
+      </div>
+      <p style="margin-top:12px">${p.fcr == null ? L.noFcr : L.feed14(num(p.pakan_bk_14_hari_kg, 1), rp(p.biaya_pakan_14_hari_rp), num(p.kenaikan_14_hari_kg, 1))}</p>
+      <p class="muted">${p.mode === "ternak" ? L.modeOwn : L.modePen(esc(a.kandang))}</p>
+      ${k && k.fcr != null ? `<p class="muted">${L.penLine(esc(k.kandang), k.ekor, num(k.fcr, 1), rp(k.biaya_per_kg_kenaikan_rp))}</p>` : ""}`
+          : `<p class="muted">${L.noFeedLog}</p>`
+      }
+      ${
+        n
+          ? `
+      <p style="margin-top:12px"><b>${L.needTitle}</b><br>${L.needLine(num(n.bk_per_hari_kg, 2), num(n.persen_bobot_badan, 1), fmt.kg(a.bobot_hari_ini_kg))}<br>${L.needFresh(num(n.segar_per_hari_kg.hijauan, 1), num(n.segar_per_hari_kg.konsentrat, 2))}</p>
+      ${p && p.persen_dari_kebutuhan != null ? `<p class="${eatCls ? "" : "muted"}" style="${eatCls ? "color:var(--warn)" : ""}">${L.eaten(num(p.rata_rata_bk_per_hari_kg, 2), p.persen_dari_kebutuhan)} ${L.eatenTag(p.persen_dari_kebutuhan)}</p>` : ""}`
+          : ""
+      }
+      <details><summary>${L.whatFcr}</summary>${L.fcrExplain.map((x) => `<p class="small">${x}</p>`).join("")}</details>
+      <p class="small muted" style="margin:12px 0 0">${L.fcrNote}</p>
+    </div>`;
+      }
+
+      function savingsHTML(a) {
+        const h = a.potensi_hemat,
+          L = t();
+        if (!h) return "";
+        let body;
+        if (h.alasan_tidak_dihitung === "sakit_atau_bobot_turun")
+          body = `<p class="muted">${L.sSick}</p>`;
+        else if (h.alasan_tidak_dihitung)
+          body = `<p class="muted">${L.sNoWeight}</p>`;
+        else if (!h.manfaat_bersih_rp_per_bulan)
+          body = `<p class="muted">${L.sNone}</p>${h.butuh_jatah_pakan ? `<p class="muted">${L.sNeedFeed}</p>` : ""}`;
+        else {
+          const row = (label, v, sign = "+") =>
+            v
+              ? `<tr><td class="muted">${label}</td><td style="text-align:right;font-family:var(--serif);font-size:18px">${sign}${rp(v)}</td></tr>`
+              : "";
+          const feedOk =
+            a.pakan &&
+            a.pakan.persen_dari_kebutuhan != null &&
+            a.pakan.persen_dari_kebutuhan >= 80;
+          body = `
+      <div class="reading" style="margin-bottom:8px"><div class="v" style="color:var(--brand)">${rp(h.manfaat_bersih_rp_per_bulan)}</div><div class="l">${L.sNet}</div></div>
+      <table style="width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums">
+        ${row(L.sFeed, h.hemat_pakan_rp_per_bulan)}
+        ${row(L.sGrowth, h.nilai_pertumbuhan_rp_per_bulan)}
+        ${row(L.sExtra, h.tambahan_pakan_rp_per_bulan, "−")}
+      </table>
+      ${h.nilai_pertumbuhan_rp_per_bulan && feedOk ? `<p class="muted" style="margin-top:8px">${L.sGrowthNote}</p>` : ""}
+      ${h.butuh_jatah_pakan ? `<p class="muted" style="margin-top:8px">${L.sNeedFeed}</p>` : ""}`;
+        }
+        return `
+    <h2>${L.savingsTitle}</h2>
+    <div class="card">
+      ${body}
+      <details><summary>${L.sHow}</summary>${L.sExplain.map((x) => `<p class="small">${x}</p>`).join("")}</details>
+    </div>`;
       }
 
       function adviceHTML(s) {
@@ -825,7 +1160,14 @@
         .catch((e) => {
           app.innerHTML = `<div class="err">${t().loadErr(esc(e.message))}</div>`;
         });
-      addEventListener("hashchange", route);
+      addEventListener("popstate", route);
+      document.addEventListener("click", (e) => {
+        const a = e.target.closest("a[data-nav]");
+        if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0)
+          return;
+        e.preventDefault();
+        go(a.getAttribute("href"));
+      });
     </script>
   </body>
 </html>
